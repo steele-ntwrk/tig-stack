@@ -1,0 +1,54 @@
+version: '3'
+services:
+    grafana:
+        image: grafana/grafana:7.0.0
+        ports:
+            - 3000:3000
+        links:
+            - influxdb:influxdb
+        environment:
+            GF_SECURITY_ADMIN_USER: admin
+            GF_SECURITY_ADMIN_PASSWORD: admin
+            GF_SECURITY_SECRET_KEY: grafana
+            GF_USERS_ALLOW_SIGN_UP: "true"
+            GF_USERS_ALLOW_ORG_CREATE: "true"
+            GF_AUTH_ANONYMOUS_ENABLED: "true"
+            GF_AUTH_ANONYMOUS_ORG_NAME: grafana
+            GF_DASHBOARDS_JSON_ENABLED: "true"
+            GF_DASHBOARDS_JSON_PATH: /opt/grafana
+        volumes:
+            - grafana-data:/var/lib/grafana
+        restart: always
+
+    influxdb:
+        image: influxdb:1.8
+        ports:
+            - 8083:8083
+            - 8086:8086
+        environment:
+            INFLUX_DATABASE: "telegraf"
+            INFLUX_ADMIN_USER: "grafana"
+            INFLUX_ADMIN_PASSWORD: "grafana"
+        volumes:
+            - influxdb-data:/var/lib/influxdb
+        restart: always
+
+    telegraf:
+        image: telegraf:1.15
+        ports:
+            - 42518:42518
+        links:
+            - influxdb:influxdb
+        environment:
+            HOST_NAME: "telegraf"
+            INFLUXDB_URL: "http://10.10.0.224"
+            INFLUXDB_PORT: "8086"
+            DATABASE: "telegraf"
+        volumes:
+            - /var/run/docker.sock:/var/run/docker.sock
+            - ./telegraf/telegraf.template.conf:/etc/telegraf/telegraf.conf
+        restart: always
+
+volumes:
+    grafana-data:
+    influxdb-data:
